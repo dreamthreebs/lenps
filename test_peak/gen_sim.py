@@ -119,7 +119,7 @@ def check_local():
     # m_pn = coadd_map(sim_type="pn", nside=nside, nstd=10)
     m_p = coadd_map(sim_type="p", nside=nside)
     df = pd.read_csv("./mask/30.csv")
-    flux_idx = 135
+    flux_idx = 136
     lon = np.rad2deg(df.at[flux_idx, "lon"])
     lat = np.rad2deg(df.at[flux_idx, "lat"])
     plot_hp(
@@ -150,6 +150,8 @@ def check_cl(mask):
     cl_n = hp.anafast(m_n * mask, pol=False)
     l = np.arange(cl_pn.shape[-1])
     print(f"{l=}")
+
+    np.save(f"./data/cl_total.npy", cl_cfn)
 
     plt.loglog(l, cl_pcfn, label="cl_pcfn")
     plt.loglog(l, cl_pcn, label="cl_pcn")
