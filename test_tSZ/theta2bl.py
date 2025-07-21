@@ -84,7 +84,7 @@ def beam2map(
     return ps_map
 
 
-def beta2map(nside, theta_c, beta=1, factor=2, theta=0, phi=0):
+def beta2map(nside, theta_c, beta=1, factor=2, ra=0, dec=90, coord="C"):
     """
     Create a beta model map with a given core radius and center coordinates.
     """
@@ -100,7 +100,22 @@ def beta2map(nside, theta_c, beta=1, factor=2, theta=0, phi=0):
     n_pix = hp.nside2npix(nside)  # 计算像素数量
     ps_map = np.zeros(n_pix)  # 初始化为0的掩模图（值为0表示非源区域）
 
-    centre_pix = hp.ang2pix(nside=nside, theta=theta, phi=phi, lonlat=True)
+    if coord == "G":
+        source = SkyCoord(l=ra * u.deg, b=dec * u.deg, frame="galactic")
+        # HEALPix 使用 theta（天顶角，0°在北极）和 phi（经度）
+        theta = np.deg2rad(90 - source.b.deg)  # colatitude = 90 - dec
+        phi = np.deg2rad(source.l.deg)
+    elif coord == "C":
+        source = SkyCoord(ra=ra * u.deg, dec=dec * u.deg, frame="icrs")
+        # HEALPix 使用 theta（天顶角，0°在北极）和 phi（经度）
+        theta = np.deg2rad(90 - source.dec.deg)  # colatitude = 90 - dec
+        phi = np.deg2rad(source.ra.deg)
+
+    centre_pix = hp.ang2pix(
+        nside=nside,
+        theta=theta,
+        phi=phi,
+    )
     centre_vec = np.array(hp.pix2vec(nside=nside, ipix=centre_pix)).astype(np.float64)
 
     ipix_fit = hp.query_disc(nside=nside, vec=centre_vec, radius=radius_rad)
@@ -108,6 +123,12 @@ def beta2map(nside, theta_c, beta=1, factor=2, theta=0, phi=0):
         np.float64
     )
 
+    centre_vec = np.asarray(
+        hp.ang2vec(
+            theta=theta,
+            phi=phi,
+        )
+    )
     cos_theta = centre_vec @ vec_around
     cos_theta = np.clip(cos_theta, -1, 1)
     theta = np.arccos(cos_theta)
