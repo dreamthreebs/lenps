@@ -56,6 +56,24 @@ def gen_fg(nside, freq, beam=None):
     return fg
 
 
+def gen_tsz(nside, freq, beam=None):
+    sky = pysm3.Sky(nside=nside, preset_strings=["tsz1"])
+    fg = sky.get_emission(freq * u.GHz)
+    fg = fg.to(u.uK_CMB, equivalencies=u.cmb_equivalencies(freq * u.GHz))[0]
+    if beam is not None:
+        fg = hp.smoothing(fg, fwhm=np.deg2rad(beam) / 60)
+    return fg
+
+
+def gen_ksz(nside, freq, beam=None):
+    sky = pysm3.Sky(nside=nside, preset_strings=["ksz1"])
+    fg = sky.get_emission(freq * u.GHz)
+    fg = fg.to(u.uK_CMB, equivalencies=u.cmb_equivalencies(freq * u.GHz))[0]
+    if beam is not None:
+        fg = hp.smoothing(fg, fwhm=np.deg2rad(beam) / 60)
+    return fg
+
+
 def coadd_map(
     sim_type: str,
     nside: int,
