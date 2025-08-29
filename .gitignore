@@ -1,6 +1,11 @@
 # Data
 *.npy
 *.fits
+*.txt
+*.csv
+*.pkl
+*.reg
+*.dat
 
 # macos
 .DS_Store
