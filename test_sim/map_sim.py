@@ -1,6 +1,10 @@
 from pixell import enmap, utils, enplot
+from astropy.coordinates import SkyCoord
+
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
+import astropy.units as u
 
 
 def interactive_show(
@@ -216,6 +220,7 @@ def get_white_noise_map(shape, wcs, noise_uK_arcmin=10.0, seed=None):
 
 
 def check_noise_cl():
+    # do not need now!
     ell = np.arange(10000, dtype=np.float64)
     res_arcmin = np.abs(wcs.wcs.cdelt[0]) * 60
     print(f"{res_arcmin=}")
@@ -224,6 +229,37 @@ def check_noise_cl():
     plt.loglog(ell, noise_ps[0, 0])
     plt.loglog(ell, noise_ps[1, 1])
     plt.show()
+
+
+def gen_nemo_csv():
+    df = pd.read_csv("95.csv")
+
+    coords_gal = SkyCoord(
+        l=df["lon"].values * u.rad, b=df["lat"].values * u.rad, frame="galactic"
+    )
+    coords = coords_gal.icrs
+
+    df["RADeg"] = coords.ra.deg
+    df["decDeg"] = coords.dec.deg
+
+    # 创建 patch 的 enmap geometry（RA 150°–250°, Dec 25°–70°）
+    box = np.deg2rad([[25, 250], [70, 150]])  # [[dec_min, ra_min], [dec_max, ra_max]]
+    shape, wcs = enmap.geometry(pos=box, res=0.5 * utils.arcmin, proj="car")
+
+    # 判断哪些点源在 patch 内
+    pix_coords = np.array([coords.dec.rad, coords.ra.rad])
+    inside_mask = enmap.contains(shape, wcs, pix_coords)
+
+    # 保留下来的点源
+    nemo_df = df[inside_mask].copy()
+
+    # 保留 Nemo 需要的字段，并重命名 amplitude
+    nemo_df = nemo_df[["index", "RADeg", "decDeg", "iflux"]].rename(
+        columns={"iflux": "amplitude"}
+    )
+
+    # 写出 CSV，可直接被 Nemo catalogFileName 使用（单位：mJy）
+    nemo_df.to_csv("input_95.csv", index=False)
 
 
 if __name__ == "__main__":
@@ -236,4 +272,7 @@ if __name__ == "__main__":
     # check_noise_cl()
     m_noise = get_white_noise_map(shape=m_shape, wcs=wcs, noise_uK_arcmin=10, seed=42)
     print(f"{np.std(m_noise[0])=}")
-    interactive_show(m_noise[0], plt_show=True, vmin=-20, vmax=20)
+
+    # interactive_show(m_noise[0], plt_show=True, vmin=-20, vmax=20)
+    #
+    gen_nemo_csv()
